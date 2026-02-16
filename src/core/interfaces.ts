@@ -15,6 +15,12 @@ export interface FileSystem {
   unlink(path: string): void;
   rmdir(path: string, options?: { recursive?: boolean }): void;
   copyFile(src: string, dest: string): void;
+  /**
+   * Create a symbolic link at `path` pointing to `target`.
+   * Callers MUST validate that both paths are absolute and resolve
+   * within expected project boundaries before calling this method.
+   */
+  symlink(target: string, path: string): void;
   rename(src: string, dest: string): void;
 }
 

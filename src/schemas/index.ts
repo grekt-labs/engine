@@ -77,8 +77,8 @@ export const CustomTargetSchema = z.object({
 });
 export type CustomTarget = z.infer<typeof CustomTargetSchema>;
 
-// Sync mode for artifacts: lazy (default) = only in index, core = copied to target
-export const ArtifactModeSchema = z.enum(["core", "lazy"]);
+// Sync mode: lazy (default) = only in index, core = copied to target, core-sym = symlinked to target
+export const ArtifactModeSchema = z.enum(["core", "core-sym", "lazy"]);
 export type ArtifactMode = z.infer<typeof ArtifactModeSchema>;
 
 // Artifact entry in grekt.yaml - either version string (all) or object (selected components)

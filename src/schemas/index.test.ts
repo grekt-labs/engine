@@ -242,6 +242,20 @@ describe("schemas", () => {
       const invalid = { version: "banana" };
       expect(() => ArtifactEntrySchema.parse(invalid)).toThrow();
     });
+
+    test("parses object with core-sym mode", () => {
+      const entry = { version: "1.0.0", mode: "core-sym" as const };
+
+      const result = ArtifactEntrySchema.parse(entry);
+
+      expect(result).toEqual({ version: "1.0.0", mode: "core-sym" });
+    });
+
+    test("rejects invalid mode", () => {
+      const entry = { version: "1.0.0", mode: "invalid-mode" };
+
+      expect(() => ArtifactEntrySchema.parse(entry)).toThrow();
+    });
   });
 
   describe("ProjectConfigSchema", () => {

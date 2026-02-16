@@ -129,6 +129,17 @@ export function createMockFileSystem(
       files.set(dest, { ...entry });
     },
 
+    symlink(target: string, path: string): void {
+      if (!target.startsWith("/") || !path.startsWith("/")) {
+        throw new Error("Symlink requires absolute paths for both target and link path");
+      }
+      const entry = files.get(target);
+      if (!entry) {
+        throw new Error(`ENOENT: no such file or directory, symlink '${target}'`);
+      }
+      files.set(path, { ...entry });
+    },
+
     rename(src: string, dest: string): void {
       const entry = files.get(src);
       if (!entry) {
