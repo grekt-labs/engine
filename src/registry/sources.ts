@@ -11,6 +11,7 @@ import type { ParsedSource } from "./registry.types";
  * Parse artifact source string into structured format
  *
  * Supported formats:
+ * - `./path`, `../path`, `/absolute`, `~/home` → local
  * - `@author/name` or `name` → registry
  * - `github:owner/repo` → GitHub
  * - `github:owner/repo#v1.0.0` → GitHub with tag
@@ -19,6 +20,15 @@ import type { ParsedSource } from "./registry.types";
  * - `gitlab:host.com/owner/repo#main` → Self-hosted with ref
  */
 export function parseSource(source: string): ParsedSource {
+  // Local paths: ./relative, ../parent, /absolute, ~/home
+  if (source.startsWith("./") || source.startsWith("../") || source.startsWith("/") || source.startsWith("~/")) {
+    return {
+      type: "local",
+      identifier: source,
+      raw: source,
+    };
+  }
+
   // GitHub: github:owner/repo or github:owner/repo#ref
   if (source.startsWith("github:")) {
     const rest = source.slice(7); // Remove "github:"
@@ -84,6 +94,7 @@ export function getSourceDisplayName(source: ParsedSource): string {
       return `gitlab:${host}${source.identifier}${source.ref ? `#${source.ref}` : ""}`;
     }
     case "registry":
+    case "local":
       return source.identifier;
     default:
       return source.raw;

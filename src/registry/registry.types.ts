@@ -108,7 +108,7 @@ export interface RegistryClient {
 /**
  * Source types for artifact origins
  */
-export type SourceType = "registry" | "github" | "gitlab";
+export type SourceType = "registry" | "github" | "gitlab" | "local";
 
 /**
  * Parsed source information
@@ -116,7 +116,7 @@ export type SourceType = "registry" | "github" | "gitlab";
 export interface ParsedSource {
   /** Source type */
   type: SourceType;
-  /** For registry: artifact ID. For git: owner/repo */
+  /** For registry: artifact ID. For git: owner/repo. For local: file path */
   identifier: string;
   /** Git ref (tag, branch, commit). Defaults to HEAD/main */
   ref?: string;

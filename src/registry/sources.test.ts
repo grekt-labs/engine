@@ -88,6 +88,35 @@ describe("sources", () => {
       expect(result.host).toBe("gitlab.com");
     });
 
+    test("returns local type for relative path", () => {
+      const result = parseSource("./my-skills");
+
+      expect(result.type).toBe("local");
+      expect(result.identifier).toBe("./my-skills");
+      expect(result.raw).toBe("./my-skills");
+    });
+
+    test("returns local type for parent relative path", () => {
+      const result = parseSource("../other/skills");
+
+      expect(result.type).toBe("local");
+      expect(result.identifier).toBe("../other/skills");
+    });
+
+    test("returns local type for absolute path", () => {
+      const result = parseSource("/home/user/skills");
+
+      expect(result.type).toBe("local");
+      expect(result.identifier).toBe("/home/user/skills");
+    });
+
+    test("returns local type for home-relative path", () => {
+      const result = parseSource("~/my-skills");
+
+      expect(result.type).toBe("local");
+      expect(result.identifier).toBe("~/my-skills");
+    });
+
     test("preserves raw source string", () => {
       const source = "github:owner/repo#v1.0.0";
       const result = parseSource(source);
@@ -144,6 +173,13 @@ describe("sources", () => {
       const display = getSourceDisplayName(source);
 
       expect(display).toBe("gitlab:gitlab.mycompany.com/owner/repo#v1.0.0");
+    });
+
+    test("formats local source as path", () => {
+      const source = parseSource("./my-skills");
+      const display = getSourceDisplayName(source);
+
+      expect(display).toBe("./my-skills");
     });
   });
 });
