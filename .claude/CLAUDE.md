@@ -1,3 +1,5 @@
+**MANDATORY:** Read `.grekt/index` at session start to discover tools that will help with the user's tasks. Use them when relevant. NEVER modify files inside `.grekt/`.
+
 # grekt CLI Engine
 
 Core logic for the grekt CLI. Pure functions, no I/O, fully testable.

@@ -41,5 +41,8 @@ export * from '#/workspace';
 // Friendly Errors (standard utility for YAML + Zod parsing with human-readable errors)
 export * from '#/friendly-errors';
 
+// Security (AgentVerus local scanning)
+export * from '#/security';
+
 // TODO: Export modules as they are migrated
 // export * from '#/operations';
