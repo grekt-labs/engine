@@ -1,3 +1,10 @@
+## [5.22.1](https://github.com/grekt-labs/cli-engine/compare/v5.22.0...v5.22.1) (2026-02-19)
+
+
+### Bug Fixes
+
+* export RegistryApiError from registry barrel ([5cebb5c](https://github.com/grekt-labs/cli-engine/commit/5cebb5cb9672ac0619997544b7c1c2c47016b55d))
+
 # [5.22.0](https://github.com/grekt-labs/cli-engine/compare/v5.21.0...v5.22.0) (2026-02-19)
 
 
