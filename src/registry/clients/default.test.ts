@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { DefaultRegistryClient } from "./default";
+import { DefaultRegistryClient, RegistryApiError } from "./default";
 import {
   createMockHttpClient,
   createMockFileSystem,
@@ -204,13 +204,255 @@ describe("DefaultRegistryClient", () => {
   });
 
   describe("publish", () => {
-    test("returns error indicating authentication required", async () => {
+    test("returns error when not authenticated", async () => {
       const { client } = createClient();
 
       const result = await client.publish({ artifactId: "@scope/artifact", version: "1.0.0", tarballPath: "/path/to/tarball.tar.gz" });
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("login");
+    });
+
+    test("uploads tarball to signed URL on success", async () => {
+      const uploadUrl = "https://storage.example.com/upload/signed-url";
+
+      const { client, fs } = createClient(
+        REGISTRY_HOST,
+        new Map([
+          [`${API_BASE}/publish`, jsonResponse({ uploadUrl, expiresAt: "2025-01-01T00:00:00Z" })],
+          [uploadUrl, jsonResponse({}, 200)],
+        ]),
+        "test-token"
+      );
+
+      fs.files.set("/path/to/tarball.tar.gz", { content: Buffer.from("tarball-data"), isDirectory: false });
+
+      const result = await client.publish({ artifactId: "@scope/artifact", version: "1.0.0", tarballPath: "/path/to/tarball.tar.gz" });
+
+      expect(result.success).toBe(true);
+    });
+
+    test("returns error when upload fails", async () => {
+      const uploadUrl = "https://storage.example.com/upload/signed-url";
+
+      const { client, fs } = createClient(
+        REGISTRY_HOST,
+        new Map([
+          [`${API_BASE}/publish`, jsonResponse({ uploadUrl, expiresAt: "2025-01-01T00:00:00Z" })],
+          [uploadUrl, errorResponse(500, "Internal Server Error")],
+        ]),
+        "test-token"
+      );
+
+      fs.files.set("/path/to/tarball.tar.gz", { content: Buffer.from("tarball-data"), isDirectory: false });
+
+      const result = await client.publish({ artifactId: "@scope/artifact", version: "1.0.0", tarballPath: "/path/to/tarball.tar.gz" });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("500");
+    });
+  });
+
+  describe("requestPublish", () => {
+    test("throws when not authenticated", async () => {
+      const { client } = createClient();
+
+      await expect(client.requestPublish({
+        artifactId: "@scope/artifact",
+        version: "1.0.0",
+        categories: ["agents"],
+      })).rejects.toThrow("Not authenticated");
+    });
+
+    test("returns upload URL on success", async () => {
+      const { client } = createClient(
+        REGISTRY_HOST,
+        new Map([
+          [`${API_BASE}/publish`, jsonResponse({ uploadUrl: "https://signed.url/upload", expiresAt: "2025-01-01T00:00:00Z" })],
+        ]),
+        "test-token"
+      );
+
+      const result = await client.requestPublish({
+        artifactId: "@scope/artifact",
+        version: "1.0.0",
+        categories: ["agents"],
+      });
+
+      expect(result.uploadUrl).toBe("https://signed.url/upload");
+      expect(result.expiresAt).toBe("2025-01-01T00:00:00Z");
+    });
+
+    test("throws RegistryApiError on failure", async () => {
+      const { client } = createClient(
+        REGISTRY_HOST,
+        new Map([
+          [`${API_BASE}/publish`, jsonResponse({ error: "Version already exists", code: "VERSION_EXISTS" }, 409)],
+        ]),
+        "test-token"
+      );
+
+      try {
+        await client.requestPublish({
+          artifactId: "@scope/artifact",
+          version: "1.0.0",
+          categories: [],
+        });
+        expect.unreachable("Should have thrown");
+      } catch (err) {
+        expect(err).toBeInstanceOf(RegistryApiError);
+        expect((err as RegistryApiError).code).toBe("VERSION_EXISTS");
+        expect((err as RegistryApiError).message).toBe("Version already exists");
+      }
+    });
+  });
+
+  describe("confirmPublish", () => {
+    test("throws when not authenticated", async () => {
+      const { client } = createClient();
+
+      await expect(client.confirmPublish({
+        artifactId: "@scope/artifact",
+        version: "1.0.0",
+      })).rejects.toThrow("Not authenticated");
+    });
+
+    test("succeeds when API returns 200", async () => {
+      const { client } = createClient(
+        REGISTRY_HOST,
+        new Map([
+          [`${API_BASE}/publish-confirm`, jsonResponse({})],
+        ]),
+        "test-token"
+      );
+
+      await expect(client.confirmPublish({
+        artifactId: "@scope/artifact",
+        version: "1.0.0",
+        license: "MIT",
+        repositoryUrl: "https://github.com/org/repo",
+      })).resolves.toBeUndefined();
+    });
+
+    test("throws RegistryApiError on failure", async () => {
+      const { client } = createClient(
+        REGISTRY_HOST,
+        new Map([
+          [`${API_BASE}/publish-confirm`, jsonResponse({ error: "Not found", code: "ARTIFACT_NOT_FOUND" }, 404)],
+        ]),
+        "test-token"
+      );
+
+      try {
+        await client.confirmPublish({ artifactId: "@scope/missing", version: "1.0.0" });
+        expect.unreachable("Should have thrown");
+      } catch (err) {
+        expect(err).toBeInstanceOf(RegistryApiError);
+        expect((err as RegistryApiError).code).toBe("ARTIFACT_NOT_FOUND");
+      }
+    });
+  });
+
+  describe("deprecate", () => {
+    test("throws when not authenticated", async () => {
+      const { client } = createClient();
+
+      await expect(
+        client.deprecate("@scope/artifact", { version: "1.0.0", message: "Use v2" })
+      ).rejects.toThrow("Not authenticated");
+    });
+
+    test("succeeds when API returns 200", async () => {
+      const { client } = createClient(
+        REGISTRY_HOST,
+        new Map([
+          [`${API_BASE}/deprecate`, jsonResponse({})],
+        ]),
+        "test-token"
+      );
+
+      await expect(
+        client.deprecate("@scope/artifact", { version: "1.0.0", message: "Use v2 instead" })
+      ).resolves.toBeUndefined();
+    });
+
+    test("throws RegistryApiError on failure", async () => {
+      const { client } = createClient(
+        REGISTRY_HOST,
+        new Map([
+          [`${API_BASE}/deprecate`, jsonResponse({ error: "Unauthorized", code: "UNAUTHORIZED" }, 403)],
+        ]),
+        "test-token"
+      );
+
+      try {
+        await client.deprecate("@scope/artifact", { version: "1.0.0", message: "deprecated" });
+        expect.unreachable("Should have thrown");
+      } catch (err) {
+        expect(err).toBeInstanceOf(RegistryApiError);
+        expect((err as RegistryApiError).code).toBe("UNAUTHORIZED");
+      }
+    });
+  });
+
+  describe("undeprecate", () => {
+    test("throws when not authenticated", async () => {
+      const { client } = createClient();
+
+      await expect(
+        client.undeprecate("@scope/artifact", "1.0.0")
+      ).rejects.toThrow("Not authenticated");
+    });
+
+    test("succeeds when API returns 200", async () => {
+      const { client } = createClient(
+        REGISTRY_HOST,
+        new Map([
+          [`${API_BASE}/undeprecate`, jsonResponse({})],
+        ]),
+        "test-token"
+      );
+
+      await expect(
+        client.undeprecate("@scope/artifact", "1.0.0")
+      ).resolves.toBeUndefined();
+    });
+
+    test("throws RegistryApiError on failure", async () => {
+      const { client } = createClient(
+        REGISTRY_HOST,
+        new Map([
+          [`${API_BASE}/undeprecate`, jsonResponse({ error: "Version not deprecated", code: "NOT_DEPRECATED" }, 400)],
+        ]),
+        "test-token"
+      );
+
+      try {
+        await client.undeprecate("@scope/artifact", "1.0.0");
+        expect.unreachable("Should have thrown");
+      } catch (err) {
+        expect(err).toBeInstanceOf(RegistryApiError);
+        expect((err as RegistryApiError).code).toBe("NOT_DEPRECATED");
+      }
+    });
+  });
+
+  describe("RegistryApiError", () => {
+    test("has correct name, code, and message", () => {
+      const err = new RegistryApiError("Something failed", "SOME_CODE", "extra details");
+
+      expect(err).toBeInstanceOf(Error);
+      expect(err).toBeInstanceOf(RegistryApiError);
+      expect(err.name).toBe("RegistryApiError");
+      expect(err.message).toBe("Something failed");
+      expect(err.code).toBe("SOME_CODE");
+      expect(err.details).toBe("extra details");
+    });
+
+    test("details is optional", () => {
+      const err = new RegistryApiError("Failed", "CODE");
+
+      expect(err.details).toBeUndefined();
     });
   });
 
