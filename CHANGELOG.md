@@ -1,3 +1,10 @@
+# [5.22.0](https://github.com/grekt-labs/cli-engine/compare/v5.21.0...v5.22.0) (2026-02-19)
+
+
+### Features
+
+* add DefaultRegistryOperations interface and implement on DefaultRegistryClient ([4898d23](https://github.com/grekt-labs/cli-engine/commit/4898d2343059a78eef513845e7f2d95a191ce091))
+
 # [5.21.0](https://github.com/grekt-labs/cli-engine/compare/v5.20.0...v5.21.0) (2026-02-19)
 
 
