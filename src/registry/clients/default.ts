@@ -14,6 +14,12 @@ import type {
   PublishResult,
   RegistryArtifactInfo,
   VersionInfo,
+  DefaultRegistryOperations,
+  DefaultPublishRequest,
+  DefaultPublishResult,
+  ConfirmPublishOptions,
+  DeprecateOptions,
+  RegistryErrorResponse,
 } from "../registry.types";
 import { hashDirectory, calculateIntegrity } from "#/artifact";
 import { sortVersionsDesc, getHighestVersion } from "#/version";
@@ -50,7 +56,7 @@ interface ApiDownloadResponse {
   deprecated: string | null;
 }
 
-export class DefaultRegistryClient implements RegistryClient {
+export class DefaultRegistryClient implements RegistryClient, DefaultRegistryOperations {
   private host: string;
   private apiBasePath: string;
   private token?: string;
@@ -248,14 +254,156 @@ export class DefaultRegistryClient implements RegistryClient {
   }
 
   async publish(
-    _options: { artifactId: string; version: string; tarballPath: string }
+    options: { artifactId: string; version: string; tarballPath: string }
   ): Promise<PublishResult> {
-    // Default registry publishing requires API authentication
-    // This is handled separately via the auth layer in CLI
+    if (!this.token) {
+      return {
+        success: false,
+        error: "Publishing to default registry requires authentication. Run 'grekt login' first.",
+      };
+    }
+
+    try {
+      // Request signed upload URL from registry
+      const { uploadUrl } = await this.requestPublish({
+        artifactId: options.artifactId,
+        version: options.version,
+        categories: [],
+      });
+
+      // Upload tarball to signed URL
+      const fileBuffer = this.fs.readFileBinary(options.tarballPath);
+      const uploadResponse = await this.http.fetch(uploadUrl, {
+        method: "PUT",
+        body: new Uint8Array(fileBuffer),
+        headers: { "Content-Type": "application/gzip" },
+      });
+
+      if (!uploadResponse.ok) {
+        return {
+          success: false,
+          error: `Upload failed: ${uploadResponse.status}`,
+        };
+      }
+
+      return { success: true };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "Unknown error",
+      };
+    }
+  }
+
+  // ============================================================================
+  // DefaultRegistryOperations — specific to the grekt default registry
+  // ============================================================================
+
+  private async parseErrorResponse(response: Response): Promise<RegistryErrorResponse> {
+    try {
+      const body = await response.json();
+      if (body && typeof body.error === "string" && typeof body.code === "string") {
+        return body as RegistryErrorResponse;
+      }
+    } catch {
+      // Failed to parse error body
+    }
+
     return {
-      success: false,
-      error: "Publishing to default registry requires 'grekt login'. Use --s3 or configure a GitLab registry.",
+      error: `Request failed with status ${response.status}`,
+      code: "UNKNOWN",
     };
+  }
+
+  async requestPublish(request: DefaultPublishRequest): Promise<DefaultPublishResult> {
+    if (!this.token) {
+      throw new Error("Not authenticated");
+    }
+
+    const response = await this.http.fetch(`${this.getApiUrl()}/publish`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...this.getAuthHeaders(),
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const errorData = await this.parseErrorResponse(response);
+      throw new RegistryApiError(errorData.error, errorData.code, errorData.details);
+    }
+
+    return await response.json();
+  }
+
+  async confirmPublish(options: ConfirmPublishOptions): Promise<void> {
+    if (!this.token) {
+      throw new Error("Not authenticated");
+    }
+
+    const response = await this.http.fetch(`${this.getApiUrl()}/publish-confirm`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...this.getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        artifactId: options.artifactId,
+        version: options.version,
+        license: options.license,
+        repository: options.repositoryUrl,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await this.parseErrorResponse(response);
+      throw new RegistryApiError(errorData.error, errorData.code, errorData.details);
+    }
+  }
+
+  async deprecate(artifactId: string, options: DeprecateOptions): Promise<void> {
+    if (!this.token) {
+      throw new Error("Not authenticated");
+    }
+
+    const response = await this.http.fetch(`${this.getApiUrl()}/deprecate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...this.getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        artifactId,
+        version: options.version,
+        message: options.message,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await this.parseErrorResponse(response);
+      throw new RegistryApiError(errorData.error, errorData.code, errorData.details);
+    }
+  }
+
+  async undeprecate(artifactId: string, version: string): Promise<void> {
+    if (!this.token) {
+      throw new Error("Not authenticated");
+    }
+
+    const response = await this.http.fetch(`${this.getApiUrl()}/undeprecate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...this.getAuthHeaders(),
+      },
+      body: JSON.stringify({ artifactId, version }),
+    });
+
+    if (!response.ok) {
+      const errorData = await this.parseErrorResponse(response);
+      throw new RegistryApiError(errorData.error, errorData.code, errorData.details);
+    }
   }
 
   async getLatestVersion(artifactId: string): Promise<string | null> {
@@ -306,6 +454,22 @@ export class DefaultRegistryClient implements RegistryClient {
       versions,
       createdAt: metadata.createdAt,
     };
+  }
+}
+
+/**
+ * Error thrown by the default registry API operations.
+ * Carries structured error code and optional details from the server response.
+ */
+export class RegistryApiError extends Error {
+  readonly code: string;
+  readonly details?: string;
+
+  constructor(message: string, code: string, details?: string) {
+    super(message);
+    this.name = "RegistryApiError";
+    this.code = code;
+    this.details = details;
   }
 }
 

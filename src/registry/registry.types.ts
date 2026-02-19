@@ -192,3 +192,88 @@ export interface RegistryArtifactInfo {
   createdAt?: string;
   updatedAt?: string;
 }
+
+// ============================================================================
+// Default registry specific operations
+// ============================================================================
+
+/**
+ * Request payload for publishing to the default registry.
+ * Includes metadata fields that the default registry requires beyond the tarball.
+ */
+export interface DefaultPublishRequest {
+  artifactId: string;
+  version: string;
+  categories: string[];
+  description?: string;
+  keywords?: string[];
+  private?: boolean;
+  license?: string;
+  repository?: string;
+}
+
+/**
+ * Result from the default registry publish endpoint.
+ * Returns a signed upload URL for the tarball.
+ */
+export interface DefaultPublishResult {
+  uploadUrl: string;
+  expiresAt: string;
+}
+
+/**
+ * Options for confirming a publish after tarball upload.
+ * Triggers server-side extraction for file browsing in the web UI.
+ */
+export interface ConfirmPublishOptions {
+  artifactId: string;
+  version: string;
+  license?: string;
+  repositoryUrl?: string;
+}
+
+/**
+ * Options for deprecating an artifact version.
+ */
+export interface DeprecateOptions {
+  version: string;
+  message: string;
+}
+
+/**
+ * Error response from the default registry API.
+ */
+export interface RegistryErrorResponse {
+  error: string;
+  code: string;
+  details?: string;
+}
+
+/**
+ * Operations specific to the default grekt registry.
+ * Separated from RegistryClient to avoid polluting the universal interface
+ * with operations that only the default registry supports.
+ */
+export interface DefaultRegistryOperations {
+  /**
+   * Publish artifact metadata and get a signed upload URL.
+   * Caller is responsible for uploading the tarball to the URL.
+   */
+  requestPublish(request: DefaultPublishRequest): Promise<DefaultPublishResult>;
+
+  /**
+   * Confirm a publish after the tarball has been uploaded.
+   * Triggers server-side tarball extraction for file browsing.
+   */
+  confirmPublish(options: ConfirmPublishOptions): Promise<void>;
+
+  /**
+   * Deprecate an artifact version with a message.
+   */
+  deprecate(artifactId: string, options: DeprecateOptions): Promise<void>;
+
+  /**
+   * Remove deprecation from an artifact version.
+   */
+  undeprecate(artifactId: string, version: string): Promise<void>;
+}
