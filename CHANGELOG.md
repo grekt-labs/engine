@@ -1,3 +1,10 @@
+## [5.22.2](https://github.com/grekt-labs/cli-engine/compare/v5.22.1...v5.22.2) (2026-02-20)
+
+
+### Bug Fixes
+
+* resolve filename collisions for generic SKILL.md and agent.md files ([#80](https://github.com/grekt-labs/cli-engine/issues/80)) ([d413fba](https://github.com/grekt-labs/cli-engine/commit/d413fba22e37b1d09c3e984306f106205b0b95d8))
+
 ## [5.22.1](https://github.com/grekt-labs/cli-engine/compare/v5.22.0...v5.22.1) (2026-02-19)
 
 
