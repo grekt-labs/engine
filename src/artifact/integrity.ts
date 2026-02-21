@@ -61,12 +61,12 @@ export interface IntegrityResult {
 }
 
 /**
- * Verify integrity of an artifact against lockfile hashes
+ * Compare expected file hashes against actual file hashes.
+ * Pure comparison — no I/O, works with any source of hashes.
  */
-export function verifyIntegrity(
-  fs: FileSystem,
-  artifactDir: string,
-  expectedFiles: Record<string, string>
+export function compareHashes(
+  expectedFiles: Record<string, string>,
+  actualFiles: Record<string, string>,
 ): IntegrityResult {
   const result: IntegrityResult = {
     valid: true,
@@ -75,33 +75,24 @@ export function verifyIntegrity(
     extraFiles: [],
   };
 
-  const actualHashes = hashDirectory(fs, artifactDir);
   const expectedPaths = new Set(Object.keys(expectedFiles));
-  const actualPaths = new Set(Object.keys(actualHashes));
+  const actualPaths = new Set(Object.keys(actualFiles));
 
-  // Check for missing files
   for (const path of expectedPaths) {
     if (!actualPaths.has(path)) {
       result.missingFiles.push(path);
       result.valid = false;
+      continue;
     }
-  }
 
-  // Check for modified files
-  for (const path of expectedPaths) {
-    const actualHash = actualHashes[path];
+    const actualHash = actualFiles[path];
     const expectedHash = expectedFiles[path];
-    if (actualHash && expectedHash && actualHash !== expectedHash) {
-      result.modifiedFiles.push({
-        path,
-        expected: expectedHash,
-        actual: actualHash,
-      });
+    if (actualHash !== expectedHash) {
+      result.modifiedFiles.push({ path, expected: expectedHash, actual: actualHash });
       result.valid = false;
     }
   }
 
-  // Check for extra files (not necessarily invalid, but noteworthy)
   for (const path of actualPaths) {
     if (!expectedPaths.has(path)) {
       result.extraFiles.push(path);
@@ -109,6 +100,18 @@ export function verifyIntegrity(
   }
 
   return result;
+}
+
+/**
+ * Verify integrity of an artifact against lockfile hashes
+ */
+export function verifyIntegrity(
+  fs: FileSystem,
+  artifactDir: string,
+  expectedFiles: Record<string, string>
+): IntegrityResult {
+  const actualHashes = hashDirectory(fs, artifactDir);
+  return compareHashes(expectedFiles, actualHashes);
 }
 
 /**
