@@ -75,26 +75,25 @@ export function compareHashes(
     extraFiles: [],
   };
 
-  const expectedPaths = new Set(Object.keys(expectedFiles));
-  const actualPaths = new Set(Object.keys(actualFiles));
+  const actualEntries = new Map(Object.entries(actualFiles));
 
-  for (const path of expectedPaths) {
-    if (!actualPaths.has(path)) {
+  for (const [path, expectedHash] of Object.entries(expectedFiles)) {
+    const actualHash = actualEntries.get(path);
+
+    if (actualHash === undefined) {
       result.missingFiles.push(path);
       result.valid = false;
       continue;
     }
 
-    const actualHash = actualFiles[path];
-    const expectedHash = expectedFiles[path];
     if (actualHash !== expectedHash) {
       result.modifiedFiles.push({ path, expected: expectedHash, actual: actualHash });
       result.valid = false;
     }
   }
 
-  for (const path of actualPaths) {
-    if (!expectedPaths.has(path)) {
+  for (const path of actualEntries.keys()) {
+    if (!(path in expectedFiles)) {
       result.extraFiles.push(path);
     }
   }
