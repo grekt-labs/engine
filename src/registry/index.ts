@@ -26,6 +26,10 @@ export {
 // Factory (client creation)
 export { createRegistryClient } from "./factory";
 
+// Browser (remote artifact discovery)
+export * from "./browse.types";
+export { createRegistryBrowser } from "./browser-factory";
+
 // Clients (direct access if needed)
 export { DefaultRegistryClient, RegistryApiError } from "./clients/default";
 export { GitLabRegistryClient } from "./clients/gitlab";
