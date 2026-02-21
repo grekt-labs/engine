@@ -1,3 +1,10 @@
+# [5.26.0](https://github.com/grekt-labs/cli-engine/compare/v5.25.0...v5.26.0) (2026-02-21)
+
+
+### Features
+
+* add registry browser for listing remote artifacts ([e5e8cdc](https://github.com/grekt-labs/cli-engine/commit/e5e8cdc41606eafcb8ae36c8b9e9f52517c94dbf))
+
 # [5.25.0](https://github.com/grekt-labs/cli-engine/compare/v5.24.1...v5.25.0) (2026-02-21)
 
 
