@@ -92,7 +92,7 @@ export const ArtifactEntrySchema = z.union([
   z.object({
     version: SemverSchema,
     mode: ArtifactModeSchema.default("lazy"), // LAZY by default, CORE opt-in
-    trusted: z.boolean().optional(),
+    trusted: z.union([z.boolean(), z.string()]).optional(),
     ...artifactEntryCategoryFields,
   }),
 ]);
