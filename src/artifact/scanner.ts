@@ -107,7 +107,12 @@ function parseJsonComponent(content: string): JsonParseResult {
     "grk-description": data["grk-description"] as string,
   };
 
-  const { "grk-type": _type, "grk-name": _name, "grk-description": _desc, ...rest } = data;
+  // Strip grk-* metadata and their unprefixed equivalents from content
+  const {
+    "grk-type": _type, "grk-name": _name, "grk-description": _desc,
+    type: _uType, name: _uName, description: _uDesc,
+    ...rest
+  } = data;
 
   return { success: true, parsed: { frontmatter, content: rest } };
 }

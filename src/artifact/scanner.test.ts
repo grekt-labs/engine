@@ -351,6 +351,269 @@ grk-description: Hooks cannot be markdown
       expect(result!.hooks).toHaveLength(0);
     });
 
+    // --- JSON unprefixed field fallback ---
+
+    test("parses JSON with unprefixed fields (name, type, description)", () => {
+      const manifest = {
+        name: "@scope/test",
+        version: "1.0.0",
+        description: "desc",
+      };
+      const mcpJson = JSON.stringify({
+        type: "mcps",
+        name: "my-mcp-server",
+        description: "An MCP server",
+        url: "https://example.com/mcp",
+      });
+
+      const fs = createMockFileSystem({
+        "/artifact/grekt.yaml": stringify(manifest),
+        "/artifact/mcps/server.json": mcpJson,
+      });
+
+      const result = scanArtifact(fs, "/artifact");
+
+      expect(result).not.toBeNull();
+      expect(result!.mcps).toHaveLength(1);
+      expect(result!.mcps[0].parsed.frontmatter["grk-type"]).toBe("mcps");
+      expect(result!.mcps[0].parsed.frontmatter["grk-name"]).toBe("my-mcp-server");
+      expect(result!.mcps[0].parsed.frontmatter["grk-description"]).toBe("An MCP server");
+    });
+
+    test("prefixed grk-* fields take priority over unprefixed when both present", () => {
+      const manifest = {
+        name: "@scope/test",
+        version: "1.0.0",
+        description: "desc",
+      };
+      const hookJson = JSON.stringify({
+        "grk-type": "hooks",
+        "grk-name": "prefixed-name",
+        "grk-description": "prefixed-desc",
+        type: "mcps",
+        name: "unprefixed-name",
+        description: "unprefixed-desc",
+        target: "claude",
+        hooks: {},
+      });
+
+      const fs = createMockFileSystem({
+        "/artifact/grekt.yaml": stringify(manifest),
+        "/artifact/hooks/hook.json": hookJson,
+      });
+
+      const result = scanArtifact(fs, "/artifact");
+
+      expect(result).not.toBeNull();
+      expect(result!.hooks).toHaveLength(1);
+      // Prefixed wins
+      expect(result!.hooks[0].parsed.frontmatter["grk-name"]).toBe("prefixed-name");
+      expect(result!.hooks[0].parsed.frontmatter["grk-description"]).toBe("prefixed-desc");
+      expect(result!.hooks[0].parsed.frontmatter["grk-type"]).toBe("hooks");
+    });
+
+    test("unprefixed fields still fail if value is empty string", () => {
+      const manifest = {
+        name: "@scope/test",
+        version: "1.0.0",
+        description: "desc",
+      };
+      const json = JSON.stringify({
+        type: "hooks",
+        name: "",
+        description: "Has desc but empty name",
+        target: "claude",
+        hooks: {},
+      });
+
+      const fs = createMockFileSystem({
+        "/artifact/grekt.yaml": stringify(manifest),
+        "/artifact/hooks/bad.json": json,
+      });
+
+      const result = scanArtifact(fs, "/artifact");
+
+      expect(result).not.toBeNull();
+      expect(result!.hooks).toHaveLength(0);
+      expect(result!.invalidFiles).toHaveLength(1);
+      expect(result!.invalidFiles[0].reason).toBe("missing-name");
+    });
+
+    test("mixed: some fields prefixed, some unprefixed", () => {
+      const manifest = {
+        name: "@scope/test",
+        version: "1.0.0",
+        description: "desc",
+      };
+      const json = JSON.stringify({
+        "grk-type": "mcps",
+        name: "server-from-unprefixed",
+        "grk-description": "desc-from-prefixed",
+        url: "https://example.com",
+      });
+
+      const fs = createMockFileSystem({
+        "/artifact/grekt.yaml": stringify(manifest),
+        "/artifact/mcps/mixed.json": json,
+      });
+
+      const result = scanArtifact(fs, "/artifact");
+
+      expect(result).not.toBeNull();
+      expect(result!.mcps).toHaveLength(1);
+      expect(result!.mcps[0].parsed.frontmatter["grk-type"]).toBe("mcps");
+      expect(result!.mcps[0].parsed.frontmatter["grk-name"]).toBe("server-from-unprefixed");
+      expect(result!.mcps[0].parsed.frontmatter["grk-description"]).toBe("desc-from-prefixed");
+    });
+
+    test("unprefixed type with invalid category still fails validation", () => {
+      const manifest = {
+        name: "@scope/test",
+        version: "1.0.0",
+        description: "desc",
+      };
+      const json = JSON.stringify({
+        type: "banana",
+        name: "bad-type",
+        description: "Invalid category via unprefixed",
+      });
+
+      const fs = createMockFileSystem({
+        "/artifact/grekt.yaml": stringify(manifest),
+        "/artifact/data/bad.json": json,
+      });
+
+      const result = scanArtifact(fs, "/artifact");
+
+      expect(result).not.toBeNull();
+      expect(result!.invalidFiles).toHaveLength(1);
+      expect(result!.invalidFiles[0].reason).toBe("missing-type");
+      expect(result!.invalidFiles[0].details).toContain("banana");
+    });
+
+    test("unprefixed type valid as category but invalid for JSON format fails", () => {
+      const manifest = {
+        name: "@scope/test",
+        version: "1.0.0",
+        description: "desc",
+      };
+      // "agents" is a valid category but not allowed for JSON files
+      const json = JSON.stringify({
+        type: "agents",
+        name: "should-fail",
+        description: "Agents are MD-only",
+      });
+
+      const fs = createMockFileSystem({
+        "/artifact/grekt.yaml": stringify(manifest),
+        "/artifact/data/agent.json": json,
+      });
+
+      const result = scanArtifact(fs, "/artifact");
+
+      expect(result).not.toBeNull();
+      expect(result!.agents).toHaveLength(0);
+      expect(result!.invalidFiles).toHaveLength(1);
+      expect(result!.invalidFiles[0].reason).toBe("invalid-type-for-format");
+    });
+
+    test("unprefixed fields are stripped from parsed content", () => {
+      const manifest = {
+        name: "@scope/test",
+        version: "1.0.0",
+        description: "desc",
+      };
+      const json = JSON.stringify({
+        type: "mcps",
+        name: "stripped-test",
+        description: "Should be in frontmatter not content",
+        url: "https://example.com",
+        customField: "should-remain",
+      });
+
+      const fs = createMockFileSystem({
+        "/artifact/grekt.yaml": stringify(manifest),
+        "/artifact/mcps/strip.json": json,
+      });
+
+      const result = scanArtifact(fs, "/artifact");
+
+      expect(result).not.toBeNull();
+      expect(result!.mcps).toHaveLength(1);
+
+      const content = result!.mcps[0].parsed.content as Record<string, unknown>;
+      // Both grk-* and unprefixed metadata are stripped from content
+      expect(content["grk-type"]).toBeUndefined();
+      expect(content["grk-name"]).toBeUndefined();
+      expect(content["grk-description"]).toBeUndefined();
+      expect(content["type"]).toBeUndefined();
+      expect(content["name"]).toBeUndefined();
+      expect(content["description"]).toBeUndefined();
+      // Domain fields remain
+      expect(content.url).toBe("https://example.com");
+      expect(content.customField).toBe("should-remain");
+    });
+
+    test("prefixed JSON also strips unprefixed equivalents if they happen to exist", () => {
+      const manifest = {
+        name: "@scope/test",
+        version: "1.0.0",
+        description: "desc",
+      };
+      const hookJson = JSON.stringify({
+        "grk-type": "hooks",
+        "grk-name": "real-name",
+        "grk-description": "real-desc",
+        name: "collision-name",
+        description: "collision-desc",
+        target: "claude",
+        hooks: {},
+      });
+
+      const fs = createMockFileSystem({
+        "/artifact/grekt.yaml": stringify(manifest),
+        "/artifact/hooks/collision.json": hookJson,
+      });
+
+      const result = scanArtifact(fs, "/artifact");
+
+      expect(result).not.toBeNull();
+      expect(result!.hooks).toHaveLength(1);
+
+      const content = result!.hooks[0].parsed.content as Record<string, unknown>;
+      // Even when grk-* was used, unprefixed should not leak into content
+      expect(content["name"]).toBeUndefined();
+      expect(content["description"]).toBeUndefined();
+      expect(content["type"]).toBeUndefined();
+      // Actual content remains
+      expect(content.target).toBe("claude");
+    });
+
+    test("JSON with no fields at all still reports all missing", () => {
+      const manifest = {
+        name: "@scope/test",
+        version: "1.0.0",
+        description: "desc",
+      };
+      const json = JSON.stringify({
+        url: "https://example.com",
+      });
+
+      const fs = createMockFileSystem({
+        "/artifact/grekt.yaml": stringify(manifest),
+        "/artifact/data/empty.json": json,
+      });
+
+      const result = scanArtifact(fs, "/artifact");
+
+      expect(result).not.toBeNull();
+      expect(result!.invalidFiles).toHaveLength(1);
+      expect(result!.invalidFiles[0].reason).toBe("missing-type");
+      expect(result!.invalidFiles[0].missingFields).toContain("grk-type");
+      expect(result!.invalidFiles[0].missingFields).toContain("grk-name");
+      expect(result!.invalidFiles[0].missingFields).toContain("grk-description");
+    });
+
     test("finds hooks alongside other component types", () => {
       const manifest = {
         name: "@scope/mixed",
