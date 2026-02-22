@@ -75,6 +75,12 @@ function parseJsonComponent(content: string): JsonParseResult {
     return { success: false, reason: "invalid-json" };
   }
 
+  // Fallback: use unprefixed fields (name, description, type) when grk-* are missing.
+  // Matches the same behavior as frontmatter.ts for markdown files.
+  if (!data["grk-type"] && data["type"]) data["grk-type"] = data["type"];
+  if (!data["grk-name"] && data["name"]) data["grk-name"] = data["name"];
+  if (!data["grk-description"] && data["description"]) data["grk-description"] = data["description"];
+
   const missingFields: string[] = [];
   if (!data["grk-type"]) missingFields.push("grk-type");
   if (!data["grk-name"]) missingFields.push("grk-name");
