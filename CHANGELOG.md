@@ -1,3 +1,16 @@
+# [6.0.0](https://github.com/grekt-labs/cli-engine/compare/v5.26.0...v6.0.0) (2026-02-22)
+
+
+### Features
+
+* replace shell tar binary with TarOperations DI interface ([68c8257](https://github.com/grekt-labs/cli-engine/commit/68c82571225a0a58cea9b17c250026f7d4621466))
+
+
+### BREAKING CHANGES
+
+* EngineContext now requires `tar: TarOperations` and
+createRegistryClient signature adds a 5th `tar` parameter.
+
 # [5.26.0](https://github.com/grekt-labs/cli-engine/compare/v5.25.0...v5.26.0) (2026-02-21)
 
 
