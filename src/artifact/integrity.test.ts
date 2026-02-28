@@ -4,6 +4,7 @@ import {
   hashFile,
   hashDirectory,
   calculateIntegrity,
+  compareHashes,
   verifyIntegrity,
   getDirectorySize,
 } from "./integrity";
@@ -12,6 +13,28 @@ import { createMockFileSystem } from "#/test-utils/mocks";
 const HASH_PATTERN = /^sha256:[a-f0-9]{32}$/;
 
 describe("integrity", () => {
+  describe("hashContent", () => {
+    test("returns sha256 prefixed hash with 32 hex chars", () => {
+      const result = hashContent("hello");
+
+      expect(result).toMatch(HASH_PATTERN);
+    });
+
+    test("produces same hash for same content", () => {
+      expect(hashContent("same")).toBe(hashContent("same"));
+    });
+
+    test("produces different hash for different content", () => {
+      expect(hashContent("a")).not.toBe(hashContent("b"));
+    });
+
+    test("handles empty string", () => {
+      const result = hashContent("");
+
+      expect(result).toMatch(HASH_PATTERN);
+    });
+  });
+
   describe("hashFile", () => {
     test("file hash matches content hash for the same artifact file", () => {
       const artifactContent = "---\ngrk-type: rule\n---\n# Coding standards";
@@ -168,6 +191,57 @@ describe("integrity", () => {
       const result = calculateIntegrity({});
 
       expect(result).toMatch(HASH_PATTERN);
+    });
+  });
+
+  describe("compareHashes", () => {
+    test("returns valid when expected and actual match exactly", () => {
+      const hashes = { "file.txt": "sha256:abc" };
+
+      const result = compareHashes(hashes, hashes);
+
+      expect(result.valid).toBe(true);
+      expect(result.missingFiles).toHaveLength(0);
+      expect(result.modifiedFiles).toHaveLength(0);
+      expect(result.extraFiles).toHaveLength(0);
+    });
+
+    test("detects missing file in actual", () => {
+      const expected = { "a.txt": "sha256:aaa", "b.txt": "sha256:bbb" };
+      const actual = { "a.txt": "sha256:aaa" };
+
+      const result = compareHashes(expected, actual);
+
+      expect(result.valid).toBe(false);
+      expect(result.missingFiles).toEqual(["b.txt"]);
+    });
+
+    test("detects modified file hash", () => {
+      const expected = { "file.txt": "sha256:original" };
+      const actual = { "file.txt": "sha256:changed" };
+
+      const result = compareHashes(expected, actual);
+
+      expect(result.valid).toBe(false);
+      expect(result.modifiedFiles).toHaveLength(1);
+      expect(result.modifiedFiles[0].expected).toBe("sha256:original");
+      expect(result.modifiedFiles[0].actual).toBe("sha256:changed");
+    });
+
+    test("extra files do not set valid to false", () => {
+      const expected = { "a.txt": "sha256:aaa" };
+      const actual = { "a.txt": "sha256:aaa", "extra.txt": "sha256:xxx" };
+
+      const result = compareHashes(expected, actual);
+
+      expect(result.valid).toBe(true);
+      expect(result.extraFiles).toEqual(["extra.txt"]);
+    });
+
+    test("handles both empty expected and actual", () => {
+      const result = compareHashes({}, {});
+
+      expect(result.valid).toBe(true);
     });
   });
 

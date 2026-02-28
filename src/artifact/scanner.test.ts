@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { scanArtifact } from "./scanner";
+import { scanArtifact, generateComponents } from "./scanner";
 import { createMockFileSystem } from "#/test-utils/mocks";
 import { stringify } from "yaml";
 
@@ -696,6 +696,147 @@ grk-description: A command
       expect(result!.agents[0].parsed.frontmatter["grk-name"]).toBe("Main Agent");
       expect(result!.skills).toHaveLength(2);
       expect(result!.commands).toHaveLength(1);
+    });
+
+    test("handles invalid JSON file content", () => {
+      const manifest = {
+        name: "@scope/test",
+        version: "1.0.0",
+        description: "desc",
+      };
+
+      const fs = createMockFileSystem({
+        "/artifact/grekt.yaml": stringify(manifest),
+        "/artifact/data/broken.json": "{ not valid json",
+      });
+
+      const result = scanArtifact(fs, "/artifact");
+
+      expect(result).not.toBeNull();
+      expect(result!.invalidFiles).toHaveLength(1);
+      expect(result!.invalidFiles[0].path).toBe("data/broken.json");
+      expect(result!.invalidFiles[0].reason).toBe("invalid-json");
+    });
+
+    test("ignores package.json files", () => {
+      const manifest = {
+        name: "@scope/test",
+        version: "1.0.0",
+        description: "desc",
+      };
+
+      const fs = createMockFileSystem({
+        "/artifact/grekt.yaml": stringify(manifest),
+        "/artifact/package.json": JSON.stringify({ name: "pkg", version: "1.0.0" }),
+      });
+
+      const result = scanArtifact(fs, "/artifact");
+
+      expect(result).not.toBeNull();
+      expect(result!.invalidFiles).toHaveLength(0);
+    });
+
+    test("handles artifact with only manifest and no other files", () => {
+      const manifest = {
+        name: "@scope/empty",
+        version: "1.0.0",
+        description: "Empty artifact",
+      };
+
+      const fs = createMockFileSystem({
+        "/artifact/grekt.yaml": stringify(manifest),
+      });
+
+      const result = scanArtifact(fs, "/artifact");
+
+      expect(result).not.toBeNull();
+      expect(result!.agents).toHaveLength(0);
+      expect(result!.skills).toHaveLength(0);
+      expect(result!.commands).toHaveLength(0);
+      expect(result!.hooks).toHaveLength(0);
+      expect(result!.invalidFiles).toHaveLength(0);
+    });
+  });
+
+  describe("generateComponents", () => {
+    test("returns undefined when no components found", () => {
+      const manifest = {
+        name: "@scope/empty",
+        version: "1.0.0",
+        description: "desc",
+      };
+      const fs = createMockFileSystem({
+        "/artifact/grekt.yaml": stringify(manifest),
+      });
+
+      const info = scanArtifact(fs, "/artifact");
+      const components = generateComponents(info!);
+
+      expect(components).toBeUndefined();
+    });
+
+    test("generates components summary from scanned files", () => {
+      const manifest = {
+        name: "@scope/test",
+        version: "1.0.0",
+        description: "desc",
+      };
+      const agent = `---
+grk-type: agents
+grk-name: My Agent
+grk-description: An agent
+---
+# Agent`;
+      const skill = `---
+grk-type: skills
+grk-name: My Skill
+grk-description: A skill
+---
+# Skill`;
+
+      const fs = createMockFileSystem({
+        "/artifact/grekt.yaml": stringify(manifest),
+        "/artifact/agent.md": agent,
+        "/artifact/skills/skill.md": skill,
+      });
+
+      const info = scanArtifact(fs, "/artifact");
+      const components = generateComponents(info!);
+
+      expect(components).toBeDefined();
+      expect(components!.agents).toHaveLength(1);
+      expect(components!.agents![0].name).toBe("My Agent");
+      expect(components!.agents![0].file).toBe("agent.md");
+      expect(components!.agents![0].description).toBe("An agent");
+      expect(components!.skills).toHaveLength(1);
+      expect(components!.skills![0].name).toBe("My Skill");
+    });
+
+    test("only includes categories that have files", () => {
+      const manifest = {
+        name: "@scope/test",
+        version: "1.0.0",
+        description: "desc",
+      };
+      const skill = `---
+grk-type: skills
+grk-name: Only Skill
+grk-description: The only component
+---
+# Content`;
+
+      const fs = createMockFileSystem({
+        "/artifact/grekt.yaml": stringify(manifest),
+        "/artifact/skills/only.md": skill,
+      });
+
+      const info = scanArtifact(fs, "/artifact");
+      const components = generateComponents(info!);
+
+      expect(components).toBeDefined();
+      expect(components!.skills).toHaveLength(1);
+      expect(components!.agents).toBeUndefined();
+      expect(components!.commands).toBeUndefined();
     });
   });
 });

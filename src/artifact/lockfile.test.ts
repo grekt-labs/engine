@@ -150,6 +150,94 @@ describe("lockfile", () => {
         expect(result.data.artifacts["@scope/minimal"].files).toEqual({});
       }
     });
+
+    test("returns yaml error for corrupted YAML content", () => {
+      const fs = createMockFileSystem({
+        "/project/grekt.lock": "version: [invalid: yaml: broken",
+      });
+
+      const result = getLockfile(fs, "/project/grekt.lock");
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.type).toBe("yaml");
+        expect(result.error.message).toContain("Invalid YAML syntax");
+      }
+    });
+
+    test("returns validation error for empty file content", () => {
+      const fs = createMockFileSystem({
+        "/project/grekt.lock": "",
+      });
+
+      const result = getLockfile(fs, "/project/grekt.lock");
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.type).toBe("validation");
+      }
+    });
+
+    test("returns validation error for YAML with wrong structure", () => {
+      const fs = createMockFileSystem({
+        "/project/grekt.lock": "just_a_string",
+      });
+
+      const result = getLockfile(fs, "/project/grekt.lock");
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.type).toBe("validation");
+      }
+    });
+
+    test("returns validation error for missing version field", () => {
+      const fs = createMockFileSystem({
+        "/project/grekt.lock": stringify({ artifacts: {} }),
+      });
+
+      const result = getLockfile(fs, "/project/grekt.lock");
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.type).toBe("validation");
+        expect(result.error.details).toBeDefined();
+      }
+    });
+
+    test("returns validation error for invalid artifact entry", () => {
+      const fs = createMockFileSystem({
+        "/project/grekt.lock": stringify({
+          version: 1,
+          artifacts: {
+            "@scope/bad": {
+              // missing version and integrity
+              files: {},
+            },
+          },
+        }),
+      });
+
+      const result = getLockfile(fs, "/project/grekt.lock");
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.type).toBe("validation");
+      }
+    });
+
+    test("includes filepath in error message", () => {
+      const fs = createMockFileSystem({
+        "/project/grekt.lock": "version: [broken",
+      });
+
+      const result = getLockfile(fs, "/project/grekt.lock");
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain("/project/grekt.lock");
+      }
+    });
   });
 
   describe("saveLockfile", () => {
