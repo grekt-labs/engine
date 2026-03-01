@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "vitest";
 import { scanArtifact, generateComponents } from "./scanner";
 import { createMockFileSystem } from "#/test-utils/mocks";
 import { stringify } from "yaml";

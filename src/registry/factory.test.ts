@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "vitest";
 import { createRegistryClient } from "./factory";
 import { DefaultRegistryClient } from "./clients/default";
 import { GitLabRegistryClient } from "./clients/gitlab";
