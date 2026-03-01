@@ -1,9 +1,9 @@
-import { describe, test, expect, mock } from "bun:test";
+import { describe, test, expect, vi } from "vitest";
 import { createMockFileSystem } from "#/test-utils/mocks";
 import { scanArtifactSecurity } from "./security";
 
 // Mock agentverus-scanner at module level
-mock.module("agentverus-scanner", () => ({
+vi.mock("agentverus-scanner", () => ({
   scanSkill: async (content: string) => {
     // Simulate different results based on content
     const hasSuspiciousContent =

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect } from "vitest";
 import { isBadgeAtOrAbove } from "./badge";
 import type { TrustBadge } from "./security.types";
 
