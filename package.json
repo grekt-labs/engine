@@ -1,5 +1,5 @@
 {
-  "name": "@grekt-labs/cli-engine",
+  "name": "@grekt/engine",
   "version": "6.1.1",
   "description": "Deterministic core logic for grekt CLI. Portable, testable, dependency-injected.",
   "type": "module",
@@ -25,7 +25,8 @@
     "test:coverage": "vitest run --coverage"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "repository": {
     "type": "git",
