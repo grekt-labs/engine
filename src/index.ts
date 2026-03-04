@@ -44,5 +44,8 @@ export * from '#/friendly-errors';
 // Security (AgentVerus local scanning)
 export * from '#/security';
 
+// Eval (discovery, schemas, scoring for artifact element testing)
+export * from '#/eval';
+
 // TODO: Export modules as they are migrated
 // export * from '#/operations';

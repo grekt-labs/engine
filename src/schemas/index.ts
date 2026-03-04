@@ -233,6 +233,13 @@ export const TokensSchema = z.record(
 );
 export type Tokens = z.infer<typeof TokensSchema>;
 
+// Eval config for local config (provider settings, optional server for sharing)
+export const EvalLocalConfigSchema = z.object({
+  providers: z.array(z.string()).optional(),
+  server: z.string().optional(),
+});
+export type EvalLocalConfig = z.infer<typeof EvalLocalConfigSchema>;
+
 // Local config (.grekt/config.yaml) - gitignored, contains registry configs, session, and tokens
 export const LocalConfigSchema = z.object({
   // Registry backends for artifacts with scope (@scope/name)
@@ -246,6 +253,9 @@ export const LocalConfigSchema = z.object({
 
   // Tokens for git sources (github:owner/repo, gitlab:owner/repo)
   tokens: TokensSchema.optional(),
+
+  // Eval engine configuration (providers, optional dashboard server)
+  eval: EvalLocalConfigSchema.optional(),
 });
 export type LocalConfig = z.infer<typeof LocalConfigSchema>;
 
