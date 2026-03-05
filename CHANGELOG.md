@@ -1,3 +1,10 @@
+# [6.3.0](https://github.com/grekt-labs/cli-engine/compare/v6.2.0...v6.3.0) (2026-03-05)
+
+
+### Features
+
+* add security badges to README ([b15bfb8](https://github.com/grekt-labs/cli-engine/commit/b15bfb8947d74c2103dd0270f7df615715a68bfb))
+
 # [6.2.0](https://github.com/grekt-labs/cli-engine/compare/v6.1.1...v6.2.0) (2026-03-04)
 
 
