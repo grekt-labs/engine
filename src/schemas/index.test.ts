@@ -16,6 +16,7 @@ import {
   ArtifactMetadataSchema,
   RegistryEntrySchema,
   LocalConfigSchema,
+  DashboardConfigSchema,
 } from "./index";
 import { REGISTRY_HOST } from "#/constants";
 
@@ -680,6 +681,77 @@ describe("schemas", () => {
       };
 
       expect(() => LocalConfigSchema.parse(invalid)).toThrow();
+    });
+
+    test("parses config with dashboard block", () => {
+      const config = {
+        dashboard: {
+          url: "http://127.0.0.1:8090",
+          token: "gdk_test-token-123",
+        },
+      };
+
+      const result = LocalConfigSchema.parse(config);
+
+      expect(result.dashboard).toEqual({
+        url: "http://127.0.0.1:8090",
+        token: "gdk_test-token-123",
+      });
+    });
+
+    test("parses config without dashboard block", () => {
+      const result = LocalConfigSchema.parse({});
+
+      expect(result.dashboard).toBeUndefined();
+    });
+  });
+
+  describe("DashboardConfigSchema", () => {
+    test("parses valid config", () => {
+      const config = {
+        url: "http://127.0.0.1:8090",
+        token: "gdk_test-token",
+      };
+
+      const result = DashboardConfigSchema.parse(config);
+
+      expect(result.url).toBe("http://127.0.0.1:8090");
+      expect(result.token).toBe("gdk_test-token");
+    });
+
+    test("rejects invalid url", () => {
+      const invalid = {
+        url: "not-a-url",
+        token: "gdk_test-token",
+      };
+
+      expect(() => DashboardConfigSchema.parse(invalid)).toThrow();
+    });
+
+    test("rejects token without gdk_ prefix", () => {
+      const invalid = {
+        url: "http://127.0.0.1:8090",
+        token: "pb_wrong-prefix",
+      };
+
+      expect(() => DashboardConfigSchema.parse(invalid)).toThrow();
+    });
+
+    test("rejects empty token", () => {
+      const invalid = {
+        url: "http://127.0.0.1:8090",
+        token: "",
+      };
+
+      expect(() => DashboardConfigSchema.parse(invalid)).toThrow();
+    });
+
+    test("rejects missing token", () => {
+      const invalid = {
+        url: "http://127.0.0.1:8090",
+      };
+
+      expect(() => DashboardConfigSchema.parse(invalid)).toThrow();
     });
   });
 });

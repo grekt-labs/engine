@@ -1,0 +1,20 @@
+/**
+ * PocketBase record types used by the dashboard client.
+ */
+
+export interface PBRecord {
+  id: string
+  collectionId: string
+  collectionName: string
+  created: string
+  updated: string
+  [key: string]: unknown
+}
+
+export interface PBListResponse {
+  page: number
+  perPage: number
+  totalPages: number
+  totalItems: number
+  items: PBRecord[]
+}
