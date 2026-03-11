@@ -1,3 +1,10 @@
+# [6.2.0-beta.2](https://github.com/grekt-labs/cli-engine/compare/v6.2.0-beta.1...v6.2.0-beta.2) (2026-03-11)
+
+
+### Features
+
+* add dashboard module with schemas, types, and mappers ([f95122b](https://github.com/grekt-labs/cli-engine/commit/f95122bd26ef5a2a2f8a8697800f53ad151b5c0b))
+
 # [6.2.0-beta.1](https://github.com/grekt-labs/cli-engine/compare/v6.1.1...v6.2.0-beta.1) (2026-03-04)
 
 
