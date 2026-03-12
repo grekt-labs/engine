@@ -47,5 +47,8 @@ export * from '#/security';
 // Eval (discovery, schemas, scoring for artifact element testing)
 export * from '#/eval';
 
+// Dashboard (schemas, types, mappers for dashboard integration)
+export * from '#/dashboard';
+
 // TODO: Export modules as they are migrated
 // export * from '#/operations';

@@ -1,6 +1,6 @@
 {
   "name": "@grekt/engine",
-  "version": "6.3.0",
+  "version": "6.4.0-beta.1",
   "description": "Deterministic core logic for grekt CLI. Portable, testable, dependency-injected.",
   "type": "module",
   "main": "dist/index.js",
@@ -22,7 +22,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest watch",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "prepare": "husky"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
@@ -45,6 +46,7 @@
     "@types/node": "^22.10.5",
     "@types/semver": "^7.7.1",
     "bun-types": "^1.3.6",
+    "husky": "^9.1.7",
     "semantic-release": "^25.0.2",
     "tsc-alias": "^1.8.16",
     "typescript": "^5.7.2",

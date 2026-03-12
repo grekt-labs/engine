@@ -240,6 +240,17 @@ export const EvalLocalConfigSchema = z.object({
 });
 export type EvalLocalConfig = z.infer<typeof EvalLocalConfigSchema>;
 
+// Dashboard config for local config (token-based auth with gdk_ prefix)
+const DASHBOARD_TOKEN_PREFIX = "gdk_";
+
+export const DashboardConfigSchema = z.object({
+  url: z.string().url(),
+  token: z.string().min(1).startsWith(DASHBOARD_TOKEN_PREFIX, {
+    message: `Dashboard token must start with "${DASHBOARD_TOKEN_PREFIX}"`,
+  }),
+});
+export type DashboardConfig = z.infer<typeof DashboardConfigSchema>;
+
 // Local config (.grekt/config.yaml) - gitignored, contains registry configs, session, and tokens
 export const LocalConfigSchema = z.object({
   // Registry backends for artifacts with scope (@scope/name)
@@ -256,6 +267,9 @@ export const LocalConfigSchema = z.object({
 
   // Eval engine configuration (providers, optional dashboard server)
   eval: EvalLocalConfigSchema.optional(),
+
+  // Dashboard integration (presence of this key = enabled)
+  dashboard: DashboardConfigSchema.optional(),
 });
 export type LocalConfig = z.infer<typeof LocalConfigSchema>;
 
