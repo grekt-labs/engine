@@ -281,7 +281,7 @@ describe("mapRegistryToRecord", () => {
       name: "@company",
       type: "gitlab",
       host: "gitlab.company.com",
-      url: "https://gitlab.company.com",
+      url: "https://gitlab.company.com/group/artifacts",
       artifact_count: 0,
     })
   })
