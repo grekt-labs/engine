@@ -104,10 +104,12 @@ export function mapScanRunToRecord(
   totalArtifacts: number,
   totalFindings: number,
   triggeredBy: "cli" | "ci",
+  scanner: string,
 ): Record<string, unknown> {
   return {
     project: projectId,
     triggered_by: triggeredBy,
+    scanner,
     total_artifacts: totalArtifacts,
     total_findings: totalFindings,
   }

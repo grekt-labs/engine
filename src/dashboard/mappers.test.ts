@@ -2,6 +2,7 @@ import { describe, test, expect } from "vitest"
 import type { LockfileEntry } from "#/schemas"
 import type { EvalSummary, EvalElementResult } from "#/eval"
 import type { ArtifactInfo } from "#/artifact"
+import type { SecurityReport } from "#/security"
 import {
   mapProjectToRecord,
   mapArtifactToRecord,
@@ -9,6 +10,8 @@ import {
   mapEvalRunToRecord,
   mapEvalResultToRecord,
   mapRegistryToRecord,
+  mapScanRunToRecord,
+  mapScanResultToRecord,
 } from "./mappers"
 
 describe("mapProjectToRecord", () => {
@@ -291,5 +294,83 @@ describe("mapRegistryToRecord", () => {
 
     expect(result.host).toBe("")
     expect(result.url).toBe("")
+  })
+})
+
+describe("mapScanRunToRecord", () => {
+  test("maps scan run with scanner field", () => {
+    const result = mapScanRunToRecord("proj1", 3, 5, "cli", "agentverus")
+
+    expect(result).toEqual({
+      project: "proj1",
+      triggered_by: "cli",
+      scanner: "agentverus",
+      total_artifacts: 3,
+      total_findings: 5,
+    })
+  })
+
+  test("maps ci triggered scan", () => {
+    const result = mapScanRunToRecord("proj1", 1, 0, "ci", "snyk")
+
+    expect(result.triggered_by).toBe("ci")
+    expect(result.scanner).toBe("snyk")
+  })
+})
+
+describe("mapScanResultToRecord", () => {
+  const baseReport: SecurityReport = {
+    score: 85,
+    badge: "conditional",
+    findings: [
+      {
+        id: "F1",
+        category: "secrets",
+        severity: "high",
+        title: "Secret found",
+        description: "API key in source",
+        evidence: "key=abc123",
+        deduction: 15,
+        recommendation: "Remove secret",
+      },
+    ],
+    categoryScores: { secrets: 70, permissions: 95 },
+    scannedAt: "2026-03-12T00:00:00.000Z",
+    filesScanned: 12,
+  }
+
+  test("maps security report to record", () => {
+    const result = mapScanResultToRecord("sr1", "pa1", baseReport, false)
+
+    expect(result).toEqual({
+      scan_run: "sr1",
+      project_artifact: "pa1",
+      score: 85,
+      badge: "conditional",
+      findings: baseReport.findings,
+      category_scores: baseReport.categoryScores,
+      files_scanned: 12,
+      trusted: false,
+    })
+  })
+
+  test("maps trusted artifact", () => {
+    const result = mapScanResultToRecord("sr1", "pa1", baseReport, true)
+
+    expect(result.trusted).toBe(true)
+  })
+
+  test("handles empty findings", () => {
+    const emptyReport: SecurityReport = {
+      ...baseReport,
+      findings: [],
+      score: 100,
+      badge: "certified",
+    }
+    const result = mapScanResultToRecord("sr1", "pa1", emptyReport, false)
+
+    expect(result.findings).toEqual([])
+    expect(result.score).toBe(100)
+    expect(result.badge).toBe("certified")
   })
 })
