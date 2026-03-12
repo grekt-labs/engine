@@ -1,3 +1,10 @@
+# [6.2.0-beta.5](https://github.com/grekt-labs/cli-engine/compare/v6.2.0-beta.4...v6.2.0-beta.5) (2026-03-12)
+
+
+### Features
+
+* add scanner field to mapScanRunToRecord ([b55ea1b](https://github.com/grekt-labs/cli-engine/commit/b55ea1bc6eff177faf0162759c91030df584e1d8))
+
 # [6.2.0-beta.4](https://github.com/grekt-labs/cli-engine/compare/v6.2.0-beta.3...v6.2.0-beta.4) (2026-03-12)
 
 
