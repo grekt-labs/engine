@@ -2,6 +2,7 @@ import type { ProjectConfig, LockfileEntry, LocalConfig } from "#/schemas"
 import type { Category } from "#/categories"
 import type { ArtifactInfo } from "#/artifact"
 import type { EvalSummary, EvalElementResult } from "#/eval"
+import type { SecurityReport } from "#/security"
 
 const ELEMENT_CATEGORIES: Category[] = ["skills", "agents", "commands", "mcps", "rules", "hooks"]
 
@@ -98,6 +99,48 @@ export function mapEvalResultToRecord(
   }
 }
 
+export function mapScanRunToRecord(
+  projectId: string,
+  totalArtifacts: number,
+  totalFindings: number,
+  triggeredBy: "cli" | "ci",
+): Record<string, unknown> {
+  return {
+    project: projectId,
+    triggered_by: triggeredBy,
+    total_artifacts: totalArtifacts,
+    total_findings: totalFindings,
+  }
+}
+
+export function mapScanResultToRecord(
+  scanRunId: string,
+  projectArtifactId: string,
+  report: SecurityReport,
+  trusted: boolean,
+): Record<string, unknown> {
+  return {
+    scan_run: scanRunId,
+    project_artifact: projectArtifactId,
+    score: report.score,
+    badge: report.badge,
+    findings: report.findings,
+    category_scores: report.categoryScores,
+    files_scanned: report.filesScanned,
+    trusted,
+  }
+}
+
+function buildRegistryUrl(registry: NonNullable<LocalConfig["registries"]>[string]): string {
+  if (!registry.host) return ""
+
+  const base = `https://${registry.host}`
+
+  if (!registry.project) return base
+
+  return `${base}/${registry.project}`
+}
+
 export function mapRegistryToRecord(
   scope: string,
   registry: NonNullable<LocalConfig["registries"]>[string],
@@ -107,7 +150,7 @@ export function mapRegistryToRecord(
     name: scope,
     type: registry.type,
     host: registry.host ?? "",
-    url: registry.host ? `https://${registry.host}` : "",
+    url: buildRegistryUrl(registry),
     artifact_count: 0,
   }
 }
