@@ -1,3 +1,21 @@
+# [6.4.0](https://github.com/grekt-labs/cli-engine/compare/v6.3.0...v6.4.0) (2026-03-12)
+
+
+### Bug Fixes
+
+* update registry mapper test to expect project in URL ([7bcac2c](https://github.com/grekt-labs/cli-engine/commit/7bcac2ccb348fe77373e7816b05da85ead1496bc))
+
+
+### Features
+
+* add beta release channel ([57cc4d3](https://github.com/grekt-labs/cli-engine/commit/57cc4d3b8facdd9e76f6c1bbe83d0a70f9edf78b))
+* add dashboard module with schemas, types, and mappers ([f95122b](https://github.com/grekt-labs/cli-engine/commit/f95122bd26ef5a2a2f8a8697800f53ad151b5c0b))
+* add eval system types, schemas, discovery, and scoring ([40130ce](https://github.com/grekt-labs/cli-engine/commit/40130ce52042c038ac5003c9e991d61567ea88ac))
+* add eval system types, schemas, discovery, and scoring ([ac2182e](https://github.com/grekt-labs/cli-engine/commit/ac2182e8e8dc69d99828d0f37a3aa00ff3524157))
+* add husky pre-push hook to run tests before push ([4cf2622](https://github.com/grekt-labs/cli-engine/commit/4cf26221a5c0bf35417181895c0e4775dd6b257f))
+* add scan mappers and fix registry URL to include project path ([e71114d](https://github.com/grekt-labs/cli-engine/commit/e71114d42e4c1f7b207a8685437e7426af7ebd5d))
+* add scanner field to mapScanRunToRecord ([b55ea1b](https://github.com/grekt-labs/cli-engine/commit/b55ea1bc6eff177faf0162759c91030df584e1d8))
+
 # [6.4.0-beta.1](https://github.com/grekt-labs/cli-engine/compare/v6.3.0...v6.4.0-beta.1) (2026-03-12)
 
 
